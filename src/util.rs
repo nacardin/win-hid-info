@@ -41,8 +41,8 @@ pub fn vec_from_utf16_ptr(ptr: *const u16) -> Vec<u16> {
         const NUL: u16 = 0;
 
         let mut index: usize = 0;
-        while *ptr.offset(index as isize) != NUL {
-            index = index + 1;
+        while *(ptr.add(index)) != NUL {
+            index += 1;
         }
         std::slice::from_raw_parts(ptr, index).to_vec()
     }

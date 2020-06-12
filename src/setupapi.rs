@@ -166,6 +166,7 @@ pub fn get_device_interface_detail(
 
     let device_interface_detail_data_ptr = unsafe { alloc(device_interface_detail_data_layout) };
 
+    #[allow(clippy::transmute_ptr_to_ref)]
     let device_interface_detail_data: &mut SP_DEVICE_INTERFACE_DETAIL_DATA_W =
         unsafe { std::mem::transmute(device_interface_detail_data_ptr) };
 

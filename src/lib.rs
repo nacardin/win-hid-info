@@ -55,7 +55,7 @@ impl Iterator for HidDeviceIterator {
         let file = std::fs::OpenOptions::new()
             .access_mode(0)
             .open(&device_interface_path)
-            .expect(&format!("unable to open device {}", &device_interface_path));
+            .unwrap_or_else(|_| panic!("unable to open device {}", &device_interface_path));
 
         let device_handle = file.as_raw_handle();
 
@@ -64,7 +64,7 @@ impl Iterator for HidDeviceIterator {
         let product = hidsdi::get_product(device_handle);
         let serial_number = hidsdi::get_serial_number(device_handle);
 
-        self.device_index = self.device_index + 1;
+        self.device_index += 1;
 
         Some(HidDevice {
             path: device_interface_path,
