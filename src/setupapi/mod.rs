@@ -1,4 +1,5 @@
-use std::alloc::{alloc, dealloc, Layout};
+mod device_interface_detail_buffer;
+
 use std::mem::{size_of, MaybeUninit};
 use std::ptr::{null, null_mut};
 
@@ -13,11 +14,12 @@ use winapi::um::setupapi::{
 };
 use winapi::um::setupapi::{
     DIGCF_DEVICEINTERFACE, DIGCF_PRESENT, HDEVINFO, SPDRP_PHYSICAL_DEVICE_OBJECT_NAME,
-    SP_DEVICE_INTERFACE_DATA, SP_DEVICE_INTERFACE_DETAIL_DATA_W, SP_DEVINFO_DATA,
+    SP_DEVICE_INTERFACE_DATA, SP_DEVINFO_DATA,
 };
 use winapi::um::winnt::WCHAR;
 
 use super::util;
+use device_interface_detail_buffer::DeviceInterfaceDetailBuffer;
 
 pub fn get_device_info_set() -> HDEVINFO {
     unsafe {
@@ -117,7 +119,7 @@ pub fn get_pdo_name(
 }
 
 pub struct DeviceInterfaceDetail {
-    pub path: Vec<WCHAR>,
+    pub path: std::path::PathBuf,
     pub device_info: SP_DEVINFO_DATA,
 }
 
@@ -154,23 +156,7 @@ pub fn get_device_interface_detail(
         }
     }
 
-    /*
-        SP_DEVICE_INTERFACE_DETAIL_DATA_W can not account for the string buffer for DevicePath,
-        so we must hackily allocate a buffer on the heap with the required size
-    */
-    let device_interface_detail_data_layout = Layout::from_size_align(
-        required_size as usize,
-        std::mem::align_of::<SP_DEVICE_INTERFACE_DETAIL_DATA_W>(),
-    )
-    .unwrap();
-
-    let device_interface_detail_data_ptr = unsafe { alloc(device_interface_detail_data_layout) };
-
-    #[allow(clippy::transmute_ptr_to_ref)]
-    let device_interface_detail_data: &mut SP_DEVICE_INTERFACE_DETAIL_DATA_W =
-        unsafe { std::mem::transmute(device_interface_detail_data_ptr) };
-
-    device_interface_detail_data.cbSize = size_of::<SP_DEVICE_INTERFACE_DETAIL_DATA_W>() as DWORD;
+    let mut device_interface_detail_buffer = DeviceInterfaceDetailBuffer::new(required_size as usize);
 
     let mut device_info_data = MaybeUninit::<SP_DEVINFO_DATA>::zeroed();
 
@@ -180,7 +166,7 @@ pub fn get_device_interface_detail(
         let has_error = SetupDiGetDeviceInterfaceDetailW(
             device_info_set,
             device_interface_data,
-            device_interface_detail_data,
+            device_interface_detail_buffer.as_mut_ptr(),
             required_size,
             null_mut(),
             device_info_data.as_mut_ptr(),
@@ -195,15 +181,8 @@ pub fn get_device_interface_detail(
             );
         };
 
-        let path = util::vec_from_utf16_ptr(&device_interface_detail_data.DevicePath as *const u16);
-
-        dealloc(
-            device_interface_detail_data_ptr,
-            device_interface_detail_data_layout,
-        );
-
         DeviceInterfaceDetail {
-            path,
+            path: device_interface_detail_buffer.path(),
             device_info: device_info_data.assume_init(),
         }
     }

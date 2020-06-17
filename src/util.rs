@@ -36,7 +36,7 @@ pub fn format_winapi_error(error_code: u32) -> String {
     }
 }
 
-pub fn vec_from_utf16_ptr(ptr: *const u16) -> Vec<u16> {
+pub fn slice_from_utf16_ptr<'a>(ptr: *const u16) -> &'a [u16] {
     unsafe {
         const NUL: u16 = 0;
 
@@ -44,10 +44,10 @@ pub fn vec_from_utf16_ptr(ptr: *const u16) -> Vec<u16> {
         while *(ptr.add(index)) != NUL {
             index += 1;
         }
-        std::slice::from_raw_parts(ptr, index).to_vec()
+        std::slice::from_raw_parts(ptr, index)
     }
 }
 
 pub fn string_from_utf16_ptr(ptr: *const u16) -> String {
-    String::from_utf16_lossy(&vec_from_utf16_ptr(ptr))
+    String::from_utf16_lossy(slice_from_utf16_ptr(ptr))
 }

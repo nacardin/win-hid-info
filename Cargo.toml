@@ -6,4 +6,4 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-winapi = { version = "0.3", features = ["setupapi", "hidclass", "errhandlingapi", "fileapi", "handleapi", "hidsdi", "winbase"] }
+winapi = { version = "0.3", features = ["setupapi", "hidclass", "errhandlingapi", "handleapi", "hidsdi", "winbase"] }

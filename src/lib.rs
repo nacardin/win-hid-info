@@ -17,7 +17,7 @@ pub fn hid_devices() -> HidDeviceIterator {
 
 #[derive(Debug)]
 pub struct HidDevice {
-    pub path: String,
+    pub path: std::path::PathBuf,
     pub product_id: u16,
     pub vendor_id: u16,
     pub version_number: u16,
@@ -51,11 +51,10 @@ impl Iterator for HidDeviceIterator {
             &mut device_interface_detail.device_info,
         );
 
-        let device_interface_path = String::from_utf16_lossy(&device_interface_detail.path);
         let file = std::fs::OpenOptions::new()
             .access_mode(0)
-            .open(&device_interface_path)
-            .unwrap_or_else(|_| panic!("unable to open device {}", &device_interface_path));
+            .open(device_interface_detail.path.as_path())
+            .unwrap_or_else(|_| panic!("unable to open device {:?}", device_interface_detail.path));
 
         let device_handle = file.as_raw_handle();
 
@@ -67,7 +66,7 @@ impl Iterator for HidDeviceIterator {
         self.device_index += 1;
 
         Some(HidDevice {
-            path: device_interface_path,
+            path: device_interface_detail.path,
             product_id: attributes.ProductID,
             vendor_id: attributes.VendorID,
             version_number: attributes.VersionNumber,
